@@ -1,0 +1,31 @@
+Chocotrader Research
+Copyright (c) 2026 Cristhian Benitez
+
+This product's source code (src/, tests/) is licensed under the MIT License
+(see LICENSE).
+
+------------------------------------------------------------------------------
+Documentation and research outputs
+------------------------------------------------------------------------------
+The paper, documentation, and generated result reports — i.e. the contents of:
+    paper/, docs/, results/
+are licensed under the Creative Commons Attribution 4.0 International license
+(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+You are free to share and adapt this material with appropriate attribution.
+
+------------------------------------------------------------------------------
+Third-party data
+------------------------------------------------------------------------------
+The fetchers in src/data/ retrieve data from third-party providers. That data
+is NOT redistributed by this repository and remains under each provider's own
+terms:
+
+  - OHLCV klines ............ Binance public API (Binance API Terms of Use)
+  - Funding rate ............ Binance USD-M perpetuals API
+  - Fear & Greed index ...... alternative.me API
+  - US Dollar Index (DTWEXBGS) FRED, Federal Reserve Bank of St. Louis
+                              (U.S. federal government data, public domain)
+
+Each user fetches this data under the original provider's terms. This
+repository provides the code to fetch and process it, not the data itself.
