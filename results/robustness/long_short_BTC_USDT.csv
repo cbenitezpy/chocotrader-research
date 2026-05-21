@@ -1,0 +1,4 @@
+strategy,sharpe,maxdd,final,trades,symbol
+buy_and_hold_btc,0.7836,-0.7704,6722.1999,1,BTC_USDT
+supertrend_long_only_spot,0.9082,-0.2559,2545.4662,176,BTC_USDT
+supertrend_long_short_perp,0.5245,-0.2361,1875.6437,351,BTC_USDT

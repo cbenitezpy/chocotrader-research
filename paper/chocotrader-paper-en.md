@@ -1,9 +1,9 @@
-# No Persistent Edge: A Pre-Registered, Multi-Phase Study of Retail Algorithmic Trading on Binance Spot (2017–2026)
+# No Persistent Edge: A Pre-Registered, Multi-Phase Study of Long-Only Retail Algorithmic Trading on Binance Spot (2017–2026)
 
 **Author:** Cristhian Benitez
-**Date:** May 2026
+**Date:** May 2026 (rev. with robustness checks)
 **Status:** Preprint / working paper
-**Companion repository:** *(to be published)* — simulators, data fetchers, and full result logs.
+**Companion repository:** https://github.com/cbenitezpy/chocotrader-research — simulators, data fetchers, and full result logs.
 
 ---
 
@@ -14,6 +14,10 @@ We report the complete results of *Chocotrader*, a self-funded, pre-registered r
 **The answer was no.** No strategy passed our pre-registered out-of-sample (OOS) gate. The single naive ensemble that cleared in-sample gates collapsed to an OOS Sharpe of **+0.041** against a required ≥0.8. The strongest active strategy in the full-period audit (SuperTrend on BTC) achieved a risk-adjusted Sharpe of 0.977 — better than Buy-and-Hold (B&H) BTC's 0.809 — but returned **7× less absolute capital** ($2,190 vs. $15,958 on a $1,000 base). In the most recent and most relevant market regime (2023–2026), **every** strategy we tested, including all six external-signal variants, underperformed B&H BTC.
 
 The contribution of this paper is twofold. First, it is an honest **negative result** in a domain dominated by survivorship bias and unpublished failures. Second, it is a **reproducible methodology** — pre-registration, physical OOS sealing, walk-forward validation, a realistic next-open fill model, and constitutional gates — that prevented us from deploying an illusory edge. We document one case where an apparently profitable mean-reversion signal (Sharpe +0.72 under an optimistic fill model) **completely vanished** (Sharpe −0.56) once a realistic fill model was applied. Total capital lost across the entire program: **$0**.
+
+We then subjected the conclusion to a battery of adversarial robustness checks (Section 6), testing whether the result is an artifact of our cost model, our 4h timeframe, our start date, our large-cap universe, or our long-only constraint. The conclusion survives all five: lower costs (even zero) rescue no negative-Sharpe strategy; a daily timeframe does not beat 4h; the active edge over B&H is start-date dependent and never clears the gate; the Sharpe gate is unmet in all seven surviving mid-cap altcoins (an upper bound, since delisted pairs are absent); and adding short-selling via 1x perpetuals with real funding costs *worsens* the trend-following Sharpe rather than improving it. Notably, the long/short test first produced a too-good Sharpe of 2.7 that we traced to an accounting bug — a live demonstration of the very discipline the paper advocates.
+
+**Scope note (important).** Our claim is deliberately narrow: *within the long-only, spot-only, retail-cost envelope*, no simple technical or sentiment strategy beat Buy-and-Hold BTC out-of-sample. We do **not** claim that no edge exists in crypto generally; leveraged perpetual carry, cross-exchange arbitrage, options, and ML approaches lie outside this envelope and are explicitly out of scope.
 
 **Keywords:** algorithmic trading, cryptocurrency, backtesting, pre-registration, out-of-sample validation, negative results, reproducibility, market efficiency.
 
@@ -257,7 +261,87 @@ Across six phases we lost **$0** of capital. The framework's value is concentrat
 
 ---
 
-## 6. Threats to Validity
+## 6. Robustness Checks (Response to Red-Team Critiques)
+
+A skeptical reviewer can argue the negative result is an artifact of our design choices rather than a property of the market. We took five such critiques seriously and tested each directly. All experiments use a $1,000 base and the realistic `next_open` fill model; code is in `src/robustness/`.
+
+### 6.1 Is it the cost model? (No.)
+
+Critique: a 0.30% round-trip is pessimistic; BNB discounts and maker-only fills would rescue marginal strategies. We re-ran the key strategies under three cost regimes — baseline (0.30% round-trip), BNB-reduced (0.25%), and a deliberately unrealistic zero-cost upper bound.
+
+| Strategy | Δ Sharpe vs B&H @ 0.30% | @ 0.25% | @ 0% (upper bound) |
+|---|---:|---:|---:|
+| SuperTrend baseline | +0.282 | +0.311 | +0.457 |
+| h3 funding (filter) | +0.034 | +0.064 | +0.213 |
+| h3 funding (standalone) | +0.033 | +0.034 | +0.040 |
+| h5 DXY (filter) | −0.250 | −0.226 | −0.109 |
+| h1 Fear&Greed (filter) | −0.905 | −0.889 | −0.807 |
+
+No negative-Sharpe strategy crosses into positive edge even at **zero cost**. The funding-filter rises toward the in-sample gate at zero cost but still fails walk-forward W3 (its decisive test). Conclusion: the binding constraint is **signal quality, not transaction cost**. The reviewer's point holds only for high-frequency strategies we did not pursue — and even there, a maker-only backtest without modeling fill uncertainty (Section 4.5) would itself be a new fill artifact.
+
+### 6.2 Is it the 4h timeframe? (No.)
+
+Critique: 4h is "no man's land" — too slow for microstructure, too fast for macro-trend. We resampled to daily and re-ran SuperTrend.
+
+| Variant | Sharpe | Δ vs B&H | MaxDD | Final ($1k) | Trades |
+|---|---:|---:|---:|---:|---:|
+| B&H BTC | +0.690 | — | −77.0% | $6,734 | 1 |
+| SuperTrend 4h | +0.972 | +0.282 | −25.6% | $3,663 | 213 |
+| SuperTrend 1d | +0.911 | +0.221 | −25.4% | $4,130 | 39 |
+
+Daily does not beat 4h on Sharpe, and neither clears the 1.2 gate. (Daily is more capital-efficient — fewer trades, similar Sharpe — but that does not change the verdict.) The sub-minute microstructure regime the reviewer alludes to is the domain of HFT, where a retail participant does not compete; pursuing it would contradict the reviewer's own critique 6.4.
+
+### 6.3 Is it the start date? (Partly — and it cuts against the reviewer.)
+
+Critique: B&H's 2017 start captures BTC's institutional-adoption beta; starting in a bear-heavy year would make active strategies look great. We ran B&H and SuperTrend from five start dates.
+
+| Start | B&H Sharpe | B&H MaxDD | SuperTrend Sharpe | ST MaxDD | Δ Sharpe |
+|---|---:|---:|---:|---:|---:|
+| 2017-08 | +0.809 | −83.9% | +0.980 | −25.6% | +0.170 |
+| 2018-01 | +0.632 | −81.4% | +0.893 | −25.6% | +0.261 |
+| 2020-01 | +0.901 | −77.0% | +0.999 | −25.6% | +0.098 |
+| 2021-11 | +0.320 | −77.0% | +0.274 | −23.8% | **−0.046** |
+| 2022-01 | +0.435 | −67.2% | +0.323 | −20.9% | **−0.112** |
+
+The reviewer's prediction is **empirically wrong** on a risk-adjusted basis: starting from the 2021 top or 2022, SuperTrend *underperforms* B&H on Sharpe, because a long-only trend-follower misses the recovery it cannot anticipate. The active strategies win consistently only on **drawdown** (avg −24% vs −77%), never enough to clear the 1.2 gate in any window. The benchmark is start-date sensitive, but not in the direction the critique assumed.
+
+### 6.4 Is it the large-cap universe? (No — survivorship makes this the strongest test.)
+
+Critique: edge lives in inefficient mid-cap altcoins, not hyper-arbitraged majors. We ran SuperTrend on seven liquid mid-caps (ADA, AVAX, LINK, DOT, ATOM, LTC, DOGE), with widened slippage (0.10%/side) for thinner books.
+
+| Pair | B&H Sharpe | SuperTrend Sharpe | ST MaxDD | Δ vs B&H | Gate (≥1.2) |
+|---|---:|---:|---:|---:|:---:|
+| ADA | +0.491 | +0.554 | −45.9% | +0.064 | fail |
+| AVAX | +0.684 | +0.960 | −41.2% | +0.276 | fail |
+| LINK | +0.912 | +0.683 | −50.4% | −0.230 | fail |
+| DOT | +0.356 | +0.187 | −59.1% | −0.170 | fail |
+| ATOM | +0.454 | +0.291 | −57.1% | −0.163 | fail |
+| LTC | +0.265 | +0.266 | −45.4% | +0.001 | fail |
+| DOGE | +0.959 | +0.726 | −61.1% | −0.233 | fail |
+
+SuperTrend clears the 1.2 gate in **0 of 7** pairs (mean Sharpe +0.524, worse than the majors). Crucially, this is a **survivorship-biased upper bound**: every pair here is still listed in 2026; the hundreds of delisted/dead mid-caps are absent (Binance's public API does not serve them). Since even the best-case survivor universe fails the gate, the conclusion is *robust* — a bias-free universe would only lower these numbers. A positive result here would have demanded a point-in-time universe with delisted pairs; a negative result does not.
+
+### 6.5 Is it the long-only constraint? (No — and this was the sharpest critique.)
+
+Critique: prohibiting short-selling in a market with 80% bear markets ties one hand behind your back; modern retail uses perpetual futures. We built a 1x long/short perpetual engine charging the **real historical 8h funding rate**, and ran SuperTrend (its SELL signals now open shorts) over the funding-available window (2019-09 onward).
+
+| Strategy | Sharpe | Δ vs B&H | MaxDD | Final ($1k) |
+|---|---:|---:|---:|---:|
+| B&H BTC | +0.784 | — | −77.0% | $6,722 |
+| SuperTrend long-only (spot) | +0.908 | +0.125 | −25.6% | $2,545 |
+| SuperTrend long/short (perp 1x) | +0.524 | −0.259 | −23.6% | $1,876 |
+
+Adding the ability to short **lowers** SuperTrend's Sharpe (0.908 → 0.524 on BTC; 0.957 → 0.535 on ETH). Two forces explain it: the short side of a trend-following signal loses money in a secular bull (it shorts dips that recover), and the funding cost (longs paid ≈+11.9% annualized over the sample) is a persistent drag. The long-only constraint was **not** the binding limitation for this strategy family.
+
+*Methodological note:* this experiment first reported a Sharpe of **2.7** — physically inconsistent with a −66% drawdown and a final equity *below* the long-only variant. We treated the too-good number as a bug (per our own red-flag rule), found a double-counting error in the perpetual mark-to-market, fixed it, and re-ran. The corrected result is above. This is the discipline of Section 5.1 operating in real time.
+
+### 6.6 What the robustness checks do and do not establish
+
+They establish that the negative result is **not** an artifact of cost, timeframe, start date, asset universe, or directionality, for the *strategy families tested*. They do **not** establish that no long/short strategy can work — only that mechanically shorting a long-only trend signal does not. Nor do they cover leveraged carry, options, or ML. The envelope is wider after Section 6, but it is still an envelope.
+
+---
+
+## 7. Threats to Validity
 
 We hold ourselves to the same scrutiny we applied to the strategies.
 
@@ -271,7 +355,7 @@ We hold ourselves to the same scrutiny we applied to the strategies.
 
 ---
 
-## 7. Conclusion and Future Directions
+## 8. Conclusion and Future Directions
 
 Under a spot-only, long-only, realistic-cost, retail-capital envelope, and across six pre-registered phases on 9.25 years of data, **we found no simple algorithmic strategy with a persistent, exploitable edge that beats Buy-and-Hold BTC out-of-sample.** The single apparent edge dissolved under a realistic fill model; the single in-sample ensemble winner collapsed out-of-sample; and a final battery of non-technical signals (sentiment, funding, macro) failed walk-forward validation entirely.
 
@@ -283,7 +367,7 @@ The most durable output of Chocotrader is not a strategy — it is a **method**.
 
 ---
 
-## 8. Reproducibility and Artifacts
+## 9. Reproducibility and Artifacts
 
 In the spirit of the result, we intend to publish the full apparatus so others can reproduce, criticize, and extend it:
 

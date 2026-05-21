@@ -1,9 +1,9 @@
-# Sin edge persistente: un estudio pre-registrado y multi-fase de trading algorítmico retail en Binance Spot (2017–2026)
+# Sin edge persistente: un estudio pre-registrado y multi-fase de trading algorítmico retail long-only en Binance Spot (2017–2026)
 
 **Autor:** Cristhian Benitez
-**Fecha:** Mayo 2026
+**Fecha:** Mayo 2026 (rev. con chequeos de robustez)
 **Estado:** Preprint / working paper
-**Repositorio complementario:** *(a publicar)* — simuladores, fetchers de datos y logs completos de resultados.
+**Repositorio complementario:** https://github.com/cbenitezpy/chocotrader-research — simuladores, fetchers de datos y logs completos de resultados.
 
 > Traducción al español del paper original en inglés (`chocotrader-paper-en.md`). En caso de discrepancia, la versión en inglés es la de referencia.
 
@@ -16,6 +16,10 @@ Reportamos los resultados completos de *Chocotrader*, un programa de investigaci
 **La respuesta fue no.** Ninguna estrategia pasó nuestro gate out-of-sample (OOS) pre-registrado. El único ensemble naive que pasó los gates in-sample colapsó a un Sharpe OOS de **+0,041** contra un requerido ≥0,8. La estrategia activa más fuerte de la auditoría de período completo (SuperTrend en BTC) logró un Sharpe ajustado por riesgo de 0,977 — mejor que el 0,809 de Buy-and-Hold (B&H) BTC — pero retornó **7× menos capital absoluto** ($2.190 vs $15.958 sobre una base de $1.000). En el régimen de mercado más reciente y más relevante (2023–2026), **todas** las estrategias que probamos, incluyendo las seis variantes de señales externas, rindieron por debajo de B&H BTC.
 
 La contribución de este paper es doble. Primero, es un **resultado negativo** honesto en un dominio dominado por el sesgo de supervivencia y los fracasos no publicados. Segundo, es una **metodología reproducible** — pre-registro, sellado físico del OOS, validación walk-forward, un modelo de fill realista next-open, y gates constitucionales — que nos impidió desplegar un edge ilusorio. Documentamos un caso donde una señal de mean-reversion aparentemente rentable (Sharpe +0,72 bajo un modelo de fill optimista) **desapareció por completo** (Sharpe −0,56) una vez aplicado un modelo de fill realista. Capital total perdido en todo el programa: **$0**.
+
+Luego sometimos la conclusión a una batería de chequeos de robustez adversariales (Sección 6), probando si el resultado es un artefacto de nuestro modelo de costos, nuestro timeframe de 4h, nuestra fecha de inicio, nuestro universo de large-caps, o nuestra restricción long-only. La conclusión sobrevive a los cinco: costos menores (incluso cero) no rescatan ninguna estrategia con Sharpe negativo; el timeframe diario no le gana al de 4h; el edge activo sobre B&H depende de la fecha de inicio y nunca alcanza el gate; el gate de Sharpe no se cumple en ninguna de las siete altcoins mid-cap sobrevivientes (una cota superior, ya que los pares deslistados están ausentes); y agregar venta en corto vía perpetuos 1x con costo de funding real *empeora* el Sharpe del trend-following en lugar de mejorarlo. Notablemente, el test long/short produjo primero un Sharpe demasiado bueno de 2,7 que rastreamos a un bug de contabilidad — una demostración en vivo de la misma disciplina que el paper defiende.
+
+**Nota de alcance (importante).** Nuestra afirmación es deliberadamente estrecha: *dentro del envelope long-only, spot-only, de costos retail*, ninguna estrategia simple técnica o de sentiment le ganó a Buy-and-Hold BTC out-of-sample. **No** afirmamos que no exista edge en cripto en general; el carry apalancado de perpetuos, el arbitraje cross-exchange, las opciones y los enfoques de ML quedan fuera de este envelope y explícitamente fuera de scope.
 
 **Palabras clave:** trading algorítmico, criptomonedas, backtesting, pre-registro, validación out-of-sample, resultados negativos, reproducibilidad, eficiencia de mercado.
 
@@ -259,7 +263,87 @@ A lo largo de seis fases perdimos **$0** de capital. El valor del framework se c
 
 ---
 
-## 6. Amenazas a la Validez
+## 6. Chequeos de Robustez (Respuesta a Críticas de Red-Team)
+
+Un reviewer escéptico puede argumentar que el resultado negativo es un artefacto de nuestras elecciones de diseño y no una propiedad del mercado. Tomamos cinco de esas críticas en serio y probamos cada una directamente. Todos los experimentos usan base $1.000 y el modelo de fill realista `next_open`; el código está en `src/robustness/`.
+
+### 6.1 ¿Es el modelo de costos? (No.)
+
+Crítica: 0,30% round-trip es pesimista; los descuentos BNB y fills maker-only rescatarían estrategias marginales. Re-corrimos las estrategias clave bajo tres regímenes de costo — baseline (0,30%), BNB-reducido (0,25%), y una cota superior irreal de costo cero.
+
+| Estrategia | Δ Sharpe vs B&H @ 0,30% | @ 0,25% | @ 0% (cota superior) |
+|---|---:|---:|---:|
+| SuperTrend baseline | +0,282 | +0,311 | +0,457 |
+| h3 funding (filtro) | +0,034 | +0,064 | +0,213 |
+| h3 funding (standalone) | +0,033 | +0,034 | +0,040 |
+| h5 DXY (filtro) | −0,250 | −0,226 | −0,109 |
+| h1 Fear&Greed (filtro) | −0,905 | −0,889 | −0,807 |
+
+Ninguna estrategia con Sharpe negativo cruza a edge positivo ni siquiera a **costo cero**. El funding-filter sube hacia el gate in-sample a costo cero pero igual falla walk-forward W3 (su test decisivo). Conclusión: la restricción vinculante es **la calidad de la señal, no el costo de transacción**. El punto del reviewer aplica solo a estrategias de alta frecuencia que no perseguimos — e incluso ahí, un backtest maker-only sin modelar incertidumbre de fill (Sección 4.5) sería en sí mismo un nuevo artefacto de fill.
+
+### 6.2 ¿Es el timeframe de 4h? (No.)
+
+Crítica: 4h es "tierra de nadie" — demasiado lento para microestructura, demasiado rápido para macro-trend. Resampleamos a diario y re-corrimos SuperTrend.
+
+| Variante | Sharpe | Δ vs B&H | MaxDD | Final ($1k) | Trades |
+|---|---:|---:|---:|---:|---:|
+| B&H BTC | +0,690 | — | −77,0% | $6.734 | 1 |
+| SuperTrend 4h | +0,972 | +0,282 | −25,6% | $3.663 | 213 |
+| SuperTrend 1d | +0,911 | +0,221 | −25,4% | $4.130 | 39 |
+
+El diario no le gana al 4h en Sharpe, y ninguno alcanza el gate de 1,2. (El diario es más eficiente en capital — menos trades, Sharpe similar — pero eso no cambia el veredicto.) El régimen de microestructura sub-minuto que el reviewer menciona es el dominio del HFT, donde un participante retail no compite; perseguirlo contradiría su propia crítica 6.4.
+
+### 6.3 ¿Es la fecha de inicio? (En parte — y va en contra del reviewer.)
+
+Crítica: el inicio en 2017 de B&H captura la beta de adopción institucional de BTC; empezar en un año bear-pesado haría que las activas se vieran geniales. Corrimos B&H y SuperTrend desde cinco fechas de inicio.
+
+| Inicio | B&H Sharpe | B&H MaxDD | SuperTrend Sharpe | ST MaxDD | Δ Sharpe |
+|---|---:|---:|---:|---:|---:|
+| 2017-08 | +0,809 | −83,9% | +0,980 | −25,6% | +0,170 |
+| 2018-01 | +0,632 | −81,4% | +0,893 | −25,6% | +0,261 |
+| 2020-01 | +0,901 | −77,0% | +0,999 | −25,6% | +0,098 |
+| 2021-11 | +0,320 | −77,0% | +0,274 | −23,8% | **−0,046** |
+| 2022-01 | +0,435 | −67,2% | +0,323 | −20,9% | **−0,112** |
+
+La predicción del reviewer es **empíricamente incorrecta** en base ajustada por riesgo: empezando desde el techo de 2021 o desde 2022, SuperTrend *rinde por debajo* de B&H en Sharpe, porque un trend-follower long-only se pierde la recuperación que no puede anticipar. Las estrategias activas ganan consistentemente solo en **drawdown** (prom. −24% vs −77%), nunca lo suficiente para alcanzar el gate de 1,2 en ninguna ventana. El benchmark es sensible a la fecha de inicio, pero no en la dirección que la crítica asumió.
+
+### 6.4 ¿Es el universo de large-caps? (No — el survivorship lo hace el test más fuerte.)
+
+Crítica: el edge vive en altcoins mid-cap ineficientes, no en los majors hiper-arbitrados. Corrimos SuperTrend en siete mid-caps líquidas (ADA, AVAX, LINK, DOT, ATOM, LTC, DOGE), con slippage ampliado (0,10%/lado) por libros más finos.
+
+| Par | B&H Sharpe | SuperTrend Sharpe | ST MaxDD | Δ vs B&H | Gate (≥1,2) |
+|---|---:|---:|---:|---:|:---:|
+| ADA | +0,491 | +0,554 | −45,9% | +0,064 | fail |
+| AVAX | +0,684 | +0,960 | −41,2% | +0,276 | fail |
+| LINK | +0,912 | +0,683 | −50,4% | −0,230 | fail |
+| DOT | +0,356 | +0,187 | −59,1% | −0,170 | fail |
+| ATOM | +0,454 | +0,291 | −57,1% | −0,163 | fail |
+| LTC | +0,265 | +0,266 | −45,4% | +0,001 | fail |
+| DOGE | +0,959 | +0,726 | −61,1% | −0,233 | fail |
+
+SuperTrend alcanza el gate de 1,2 en **0 de 7** pares (Sharpe medio +0,524, peor que los majors). Crucialmente, esto es una **cota superior sesgada por supervivencia**: cada par aquí sigue listado en 2026; las cientos de mid-caps deslistadas/muertas están ausentes (la API pública de Binance no las sirve). Dado que incluso el mejor caso (universo de sobrevivientes) falla el gate, la conclusión es *robusta* — un universo sin sesgo solo bajaría estos números. Un resultado positivo aquí habría exigido un universo point-in-time con pares deslistados; uno negativo no.
+
+### 6.5 ¿Es la restricción long-only? (No — y fue la crítica más afilada.)
+
+Crítica: prohibir la venta en corto en un mercado con bear markets del 80% es atarse una mano a la espalda; el retail moderno usa futuros perpetuos. Construimos un engine long/short de perpetuo 1x cobrando el **funding rate histórico real de 8h**, y corrimos SuperTrend (sus señales SELL ahora abren shorts) en la ventana con funding disponible (2019-09 en adelante).
+
+| Estrategia | Sharpe | Δ vs B&H | MaxDD | Final ($1k) |
+|---|---:|---:|---:|---:|
+| B&H BTC | +0,784 | — | −77,0% | $6.722 |
+| SuperTrend long-only (spot) | +0,908 | +0,125 | −25,6% | $2.545 |
+| SuperTrend long/short (perp 1x) | +0,524 | −0,259 | −23,6% | $1.876 |
+
+Agregar la capacidad de shortear **baja** el Sharpe de SuperTrend (0,908 → 0,524 en BTC; 0,957 → 0,535 en ETH). Dos fuerzas lo explican: el lado short de una señal de trend-following pierde dinero en un bull secular (shortea caídas que se recuperan), y el costo de funding (los longs pagaron ≈+11,9% anualizado en la muestra) es un drag persistente. La restricción long-only **no** era la limitación vinculante para esta familia de estrategias.
+
+*Nota metodológica:* este experimento reportó primero un Sharpe de **2,7** — físicamente inconsistente con un drawdown de −66% y una equity final *por debajo* de la variante long-only. Tratamos el número demasiado-bueno como un bug (según nuestra propia regla de red-flags), encontramos un error de doble-conteo en el mark-to-market del perpetuo, lo arreglamos, y re-corrimos. El resultado corregido es el de arriba. Esta es la disciplina de la Sección 5.1 operando en tiempo real.
+
+### 6.6 Qué establecen y qué no los chequeos de robustez
+
+Establecen que el resultado negativo **no** es un artefacto de costo, timeframe, fecha de inicio, universo de activos, o direccionalidad, para las *familias de estrategias probadas*. **No** establecen que ninguna estrategia long/short pueda funcionar — solo que shortear mecánicamente una señal trend long-only no lo hace. Tampoco cubren carry apalancado, opciones, o ML. El envelope es más amplio tras la Sección 6, pero sigue siendo un envelope.
+
+---
+
+## 7. Amenazas a la Validez
 
 Nos sometemos al mismo escrutinio que aplicamos a las estrategias.
 
@@ -273,7 +357,7 @@ Nos sometemos al mismo escrutinio que aplicamos a las estrategias.
 
 ---
 
-## 7. Conclusión y Direcciones Futuras
+## 8. Conclusión y Direcciones Futuras
 
 Bajo un envelope spot-only, long-only, de costos realistas y capital retail, y a través de seis fases pre-registradas sobre 9.25 años de datos, **no encontramos ninguna estrategia algorítmica simple con un edge persistente y explotable que le gane a Buy-and-Hold BTC out-of-sample.** El único edge aparente se disolvió bajo un modelo de fill realista; el único ganador in-sample del ensemble colapsó out-of-sample; y una batería final de señales no-técnicas (sentiment, funding, macro) falló la validación walk-forward por completo.
 
@@ -285,7 +369,7 @@ El producto más duradero de Chocotrader no es una estrategia — es un **métod
 
 ---
 
-## 8. Reproducibilidad y Artefactos
+## 9. Reproducibilidad y Artefactos
 
 En el espíritu del resultado, pretendemos publicar el aparato completo para que otros puedan reproducir, criticar y extender:
 

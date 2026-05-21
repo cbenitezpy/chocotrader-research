@@ -31,6 +31,8 @@
 - In the 2023–2026 regime, **every** strategy underperformed Buy-and-Hold BTC.
 - Total capital lost: **$0**.
 
+The conclusion was then stress-tested against five adversarial critiques (cost model, 4h timeframe, start date, large-cap universe, long-only constraint) — see `src/robustness/` and `results/robustness/`. It survives all five; notably, adding short-selling via 1x perpetuals with **real funding costs** *lowers* the trend-following Sharpe rather than raising it. Full write-up in the paper's Section 6.
+
 ## Quickstart
 
 ```bash

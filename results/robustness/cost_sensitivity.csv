@@ -1,0 +1,16 @@
+regime,strategy,sharpe,delta_vs_bh,final_equity,n_trades
+baseline_0.30%rt,supertrend_baseline,0.9724,0.282,3663.4045,213
+baseline_0.30%rt,h1_fg_filter,-0.2148,-0.905,812.4533,65
+baseline_0.30%rt,h3_funding_filter,0.7242,0.034,2084.8623,167
+baseline_0.30%rt,h3_funding_standalone,0.723,0.033,1955.5555,6
+baseline_0.30%rt,h5_dxy_filter,0.4408,-0.25,1481.8381,122
+bnb_reduced_0.25%rt,supertrend_baseline,1.0015,0.311,3823.1927,213
+bnb_reduced_0.25%rt,h1_fg_filter,-0.1983,-0.889,823.0843,65
+bnb_reduced_0.25%rt,h3_funding_filter,0.7542,0.064,2155.8048,167
+bnb_reduced_0.25%rt,h3_funding_standalone,0.7243,0.034,1957.9657,6
+bnb_reduced_0.25%rt,h5_dxy_filter,0.4643,-0.226,1518.495,122
+maker_optimistic_0%rt,supertrend_baseline,1.147,0.457,4734.5807,213
+maker_optimistic_0%rt,h1_fg_filter,-0.1164,-0.807,878.0846,65
+maker_optimistic_0%rt,h3_funding_filter,0.9037,0.213,2548.6916,167
+maker_optimistic_0%rt,h3_funding_standalone,0.7308,0.04,1970.6641,6
+maker_optimistic_0%rt,h5_dxy_filter,0.5817,-0.109,1716.0854,122
