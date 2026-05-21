@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+title: >-
+  No Persistent Edge: A Pre-Registered, Multi-Phase Study of Retail
+  Algorithmic Trading on Binance Spot (2017–2026)
+message: >-
+  If you use this software or its findings, please cite it using the
+  metadata below.
+type: software
+authors:
+  - given-names: Cristhian
+    family-names: Benitez
+abstract: >-
+  A self-funded, pre-registered research program evaluating whether any
+  simple, retail-accessible algorithmic strategy has a persistent,
+  exploitable edge on Binance Spot, net of realistic costs. Across six
+  phases and 9.25 years of data (trend-following, mean-reversion,
+  regime-aware filtering, multi-pair portfolios, and non-technical alpha
+  sources including Fear & Greed, funding rate, and DXY), no strategy
+  passed the pre-registered out-of-sample gate. The repository includes the
+  simulators, data fetchers, datasets, result logs, and the full paper.
+keywords:
+  - algorithmic trading
+  - cryptocurrency
+  - backtesting
+  - pre-registration
+  - out-of-sample validation
+  - negative results
+  - reproducibility
+  - market efficiency
+license: MIT
+date-released: "2026-05-21"
+version: "1.0.0"

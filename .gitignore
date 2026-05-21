@@ -1,0 +1,20 @@
+# Virtual environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Datasets are regenerable via fetchers — do not commit raw market data.
+# (avoids redistributing exchange data and bloating the repo)
+data/ohlcv/*.parquet
+data/external/*.parquet
+
+# Generated artifacts that are re-created by `make reproduce`
+# (the curated reports under results/ ARE committed; transient run logs are not)
+results/v6/run_log.jsonl
+
+# OS noise
+.DS_Store
