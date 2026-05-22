@@ -56,6 +56,16 @@ Estas restricciones importan: son precisamente las condiciones bajo las que oper
 
 No es una afirmación de que *no* existe edge algorítmico en mercados cripto. Plausiblemente existen edges en regímenes que excluimos deliberadamente — carry/basis trading de futuros perpetuos, arbitraje cross-exchange, market making, y enfoques de machine learning con datos y latencia fuera del alcance de un participante retail. Nuestra afirmación es más estrecha y, creemos, más útil: **dentro del envelope de spot-only, long-only y costos retail, las estrategias simples técnicas y basadas en sentiment no le ganan a Buy-and-Hold BTC out-of-sample.**
 
+### 1.5 Trabajo relacionado y en qué difiere este estudio
+
+Nuestro resultado se inserta en tres literaturas establecidas. Primero, **eficiencia de mercado en cripto.** La Hipótesis de Mercados Eficientes (Fama, 1970) predeciría ausencia de edge explotable; la Hipótesis de Mercados Adaptativos (Lo, 2004) la refina hacia eficiencia *variable en el tiempo*, y los estudios empíricos en cripto confirman exactamente eso — los mercados están más cerca de ser eficientes en regímenes alcistas y menos eficientes en regímenes bajistas/tempranos (Khuntia & Pattanayak, 2018; Tran & Leirvik, 2020). Es precisamente el patrón que observamos: todo edge aparente se concentra en regímenes específicos (a menudo tempranos o de tendencia) y decae out-of-sample.
+
+Segundo, **momentum y trend-following.** El momentum cross-sectional (Jegadeesh & Titman, 1993) y el time-series momentum (Moskowitz, Ooi & Pedersen, 2012) están entre las anomalías más robustas en activos tradicionales, y una literatura cripto creciente reporta retornos de time-series momentum superiores al 20% anualizado (p. ej., Liu & Tsyvinski, 2021). Crucialmente, gran parte de esa literatura atribuye el efecto a la inmadurez del mercado y al predominio de noise traders, y una fracción grande reporta desempeño bruto o casi-bruto, fills optimistas, o resultados in-sample. Nuestra contribución es mostrar que bajo un **fill realista next-open y costos retail**, ese edge reportado no sobrevive out-of-sample para un participante retail long-only.
+
+Tercero, **overfitting de backtest.** Bailey, Borwein, López de Prado & Zhu (2014) sobre la *Probabilidad de Backtest Overfitting*, y Bailey & López de Prado (2014) sobre el *Deflated Sharpe Ratio*, muestran que probar muchas variantes y quedarse con la mejor infla el Sharpe aun cuando todas las candidatas sean ruido. Esa es la falla que nuestro pre-registro, OOS sellado, y (en esta revisión) test de significancia por bootstrap están diseñados para prevenir. Nuestro hallazgo de que el mejor Sharpe activo es estadísticamente indistinguible de Buy-and-Hold (Sección 6.6) es una instancia empírica directa de su advertencia.
+
+En resumen: donde la literatura optimista de momentum cripto reporta edge, nosotros reportamos que el edge no supera un benchmark de Buy-and-Hold out-of-sample una vez que la ejecución y el sesgo de selección se modelan honestamente — un resultado plenamente consistente con las literaturas de eficiencia adaptativa y de overfitting de backtest.
+
 ---
 
 ## 2. Metodología y Framework
@@ -337,7 +347,21 @@ Agregar la capacidad de shortear **baja** el Sharpe de SuperTrend (0,908 → 0,5
 
 *Nota metodológica:* este experimento reportó primero un Sharpe de **2,7** — físicamente inconsistente con un drawdown de −66% y una equity final *por debajo* de la variante long-only. Tratamos el número demasiado-bueno como un bug (según nuestra propia regla de red-flags), encontramos un error de doble-conteo en el mark-to-market del perpetuo, lo arreglamos, y re-corrimos. El resultado corregido es el de arriba. Esta es la disciplina de la Sección 5.1 operando en tiempo real.
 
-### 6.6 Qué establecen y qué no los chequeos de robustez
+### 6.6 ¿Es el edge activo estadísticamente significativo? (No.)
+
+Un reviewer preguntó, con razón, si la ventaja de Sharpe de SuperTrend sobre Buy-and-Hold (0,972 vs 0,690 en la muestra completa de BTC) es distinguible del ruido, o solo suerte de muestreo. Respondemos con un **moving-block bootstrap** (bloque de 30 barras, 5.000 resamples, pareado para preservar la correlación entre estrategias), que respeta la autocorrelación y el clustering de volatilidad que un bootstrap i.i.d. ignoraría.
+
+<pre style="white-space:pre-wrap">
+                 Sharpe   IC 95% bootstrap
+B&H BTC          +0,690   [+0,012, +1,391]
+SuperTrend       +0,972   [+0,239, +1,671]
+Diferencia       +0,282   [-0,298, +0,778]   <- incluye 0
+p-value una cola  P(diff <= 0) = 0,189
+</pre>
+
+El intervalo de confianza 95% de la diferencia **incluye cero** (p = 0,19). Con 9,25 años de datos de 4h, el error de muestreo del Sharpe es lo suficientemente amplio como para que la ventaja aparente de SuperTrend sobre Buy-and-Hold **no sea estadísticamente significativa**. Ni siquiera la mejor estrategia activa de todo el programa puede afirmarse, con confianza, que le gana al holding pasivo. Esto refuerza en lugar de debilitar la conclusión del paper — y es una instancia concreta de la advertencia del Deflated Sharpe (Sección 1.5): un estimador puntual positivo no es un edge.
+
+### 6.7 Qué establecen y qué no los chequeos de robustez
 
 Establecen que el resultado negativo **no** es un artefacto de costo, timeframe, fecha de inicio, universo de activos, o direccionalidad, para las *familias de estrategias probadas*. **No** establecen que ninguna estrategia long/short pueda funcionar — solo que shortear mecánicamente una señal trend long-only no lo hace. Tampoco cubren carry apalancado, opciones, o ML. El envelope es más amplio tras la Sección 6, pero sigue siendo un envelope.
 
@@ -380,7 +404,24 @@ En el espíritu del resultado, pretendemos publicar el aparato completo para que
 - **Logs completos de resultados** (`run_log.jsonl`), reportes por experimento, y los documentos de pre-registro sellados con sus hashes de commit.
 - **Artefactos de gobernanza**: la constitución, los architecture-decision records (ADRs), y las plantillas de pre-registro.
 
-Todos los backtests de este paper son reproducibles desde el código committeado y los datasets regenerables. El dataset out-of-sample reservado para la fase final permanece sellado y sin usar.
+Todos los backtests de este paper son reproducibles desde el código committeado y los datasets regenerables. El dataset out-of-sample reservado para la fase final permanece sellado y sin usar. El test de significancia por bootstrap de la Sección 6.6 está en `src/robustness/significance.py`.
+
+---
+
+## Referencias
+
+- Bailey, D. H., Borwein, J. M., López de Prado, M., & Zhu, Q. J. (2014). *Pseudo-Mathematics and Financial Charlatanism: The Effects of Backtest Overfitting on Out-of-Sample Performance.* Notices of the AMS.
+- Bailey, D. H., & López de Prado, M. (2014). *The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting, and Non-Normality.* Journal of Portfolio Management. SSRN 2460551.
+- Fama, E. F. (1970). *Efficient Capital Markets: A Review of Theory and Empirical Work.* Journal of Finance, 25(2).
+- Jegadeesh, N., & Titman, S. (1993). *Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency.* Journal of Finance, 48(1).
+- Khuntia, S., & Pattanayak, J. K. (2018). *Adaptive Market Hypothesis and Evolving Predictability of Bitcoin.* Economics Letters, 167.
+- Liu, Y., & Tsyvinski, A. (2021). *Risks and Returns of Cryptocurrency.* Review of Financial Studies, 34(6).
+- Lo, A. W. (2004). *The Adaptive Markets Hypothesis.* Journal of Portfolio Management, 30(5).
+- Moskowitz, T. J., Ooi, Y. H., & Pedersen, L. H. (2012). *Time Series Momentum.* Journal of Financial Economics, 104(2).
+- Politis, D. N., & Romano, J. P. (1994). *The Stationary Bootstrap.* Journal of the American Statistical Association, 89(428).
+- Tran, V. L., & Leirvik, T. (2020). *Efficiency in the Markets of Crypto-currencies.* Finance Research Letters, 35.
+
+*(Las citas se proveen como contexto académico. Este es un working paper; las afirmaciones cuantitativas descansan en el código y los datos reproducibles, no en los trabajos citados.)*
 
 ---
 

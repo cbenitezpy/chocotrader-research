@@ -54,6 +54,16 @@ These constraints matter: they are precisely the conditions under which a typica
 
 This is not a claim that *no* algorithmic edge exists in crypto markets. Edges plausibly exist in regimes we deliberately excluded — perpetual-futures carry/basis trading, cross-exchange arbitrage, market making, and machine-learning approaches with data and latency beyond a retail participant's reach. Our claim is narrower and, we believe, more useful: **within the spot-only, long-only, retail-cost envelope, simple technical and sentiment-based strategies do not beat Buy-and-Hold BTC out-of-sample.**
 
+### 1.5 Related work and how this study differs
+
+Our result sits inside three established literatures. First, **market efficiency in crypto.** The Efficient Market Hypothesis (Fama, 1970) would predict no exploitable edge; the Adaptive Market Hypothesis (Lo, 2004) refines this to *time-varying* efficiency, and empirical crypto studies confirm exactly that — markets are closer to efficient in bull regimes and less efficient in bear/early regimes (Khuntia & Pattanayak, 2018; Tran & Leirvik, 2020). This is precisely the pattern we observe: any apparent edge concentrates in specific (often early or trending) regimes and decays out-of-sample.
+
+Second, **momentum and trend-following.** Cross-sectional momentum (Jegadeesh & Titman, 1993) and time-series momentum (Moskowitz, Ooi & Pedersen, 2012) are among the most robust anomalies in traditional assets, and a growing crypto literature reports time-series momentum returns exceeding 20% annualized (e.g., Liu & Tsyvinski, 2021; momentum surveys cited herein). Crucially, much of that literature attributes the effect to market immaturity and noise-trader dominance, and a large fraction reports gross or near-gross performance, optimistic fills, or in-sample results. Our contribution is to show that under a **realistic next-open fill and retail costs**, that reported edge does not survive out-of-sample for a retail long-only participant.
+
+Third, **backtest overfitting.** Bailey, Borwein, López de Prado & Zhu (2014) on the *Probability of Backtest Overfitting*, and Bailey & López de Prado (2014) on the *Deflated Sharpe Ratio*, show that trying many strategy variants and keeping the best inflates the Sharpe even when all candidates are noise. This is the failure our pre-registration, sealed OOS, and (in this revision) bootstrap significance testing are designed to prevent. Our finding that the best active Sharpe is statistically indistinguishable from Buy-and-Hold (Section 6.6) is a direct empirical instance of their warning.
+
+In short: where the optimistic crypto-momentum literature reports edge, we report that the edge does not clear a Buy-and-Hold benchmark out-of-sample once execution and selection bias are modeled honestly — a result fully consistent with the adaptive-efficiency and backtest-overfitting literatures.
+
 ---
 
 ## 2. Methodology and Framework
@@ -335,7 +345,21 @@ Adding the ability to short **lowers** SuperTrend's Sharpe (0.908 → 0.524 on B
 
 *Methodological note:* this experiment first reported a Sharpe of **2.7** — physically inconsistent with a −66% drawdown and a final equity *below* the long-only variant. We treated the too-good number as a bug (per our own red-flag rule), found a double-counting error in the perpetual mark-to-market, fixed it, and re-ran. The corrected result is above. This is the discipline of Section 5.1 operating in real time.
 
-### 6.6 What the robustness checks do and do not establish
+### 6.6 Is the active edge statistically significant? (No.)
+
+A reviewer rightly asked whether SuperTrend's Sharpe advantage over Buy-and-Hold (0.972 vs 0.690 on the full BTC sample) is distinguishable from noise, or just sampling luck. We answer with a **moving-block bootstrap** (block size 30 bars, 5,000 resamples, paired so cross-strategy correlation is preserved), which respects the autocorrelation and volatility clustering that an i.i.d. bootstrap would ignore.
+
+<pre style="white-space:pre-wrap">
+                 Sharpe   95% bootstrap CI
+B&H BTC          +0.690   [+0.012, +1.391]
+SuperTrend       +0.972   [+0.239, +1.671]
+Difference       +0.282   [-0.298, +0.778]   <- includes 0
+one-sided p-value  P(diff <= 0) = 0.189
+</pre>
+
+The 95% confidence interval for the difference **includes zero** (p = 0.19). With 9.25 years of 4h data, the sampling error of the Sharpe ratio is wide enough that SuperTrend's apparent edge over Buy-and-Hold is **not statistically significant**. Even the single best active strategy in the entire program cannot be said, with confidence, to beat passive holding. This strengthens rather than weakens the paper's conclusion — and it is a concrete instance of the Deflated-Sharpe warning (Section 1.5): a positive point estimate is not an edge.
+
+### 6.7 What the robustness checks do and do not establish
 
 They establish that the negative result is **not** an artifact of cost, timeframe, start date, asset universe, or directionality, for the *strategy families tested*. They do **not** establish that no long/short strategy can work — only that mechanically shorting a long-only trend signal does not. Nor do they cover leveraged carry, options, or ML. The envelope is wider after Section 6, but it is still an envelope.
 
@@ -378,7 +402,24 @@ In the spirit of the result, we intend to publish the full apparatus so others c
 - **Full result logs** (`run_log.jsonl`), per-experiment reports, and the sealed pre-registration documents with their commit hashes.
 - **Governance artifacts**: the constitution, the architecture-decision records (ADRs), and the pre-registration templates.
 
-All backtests in this paper are reproducible from the committed code and the regenerable datasets. The out-of-sample dataset reserved for the final phase remains sealed and unused.
+All backtests in this paper are reproducible from the committed code and the regenerable datasets. The out-of-sample dataset reserved for the final phase remains sealed and unused. The bootstrap significance test of Section 6.6 is in `src/robustness/significance.py`.
+
+---
+
+## References
+
+- Bailey, D. H., Borwein, J. M., López de Prado, M., & Zhu, Q. J. (2014). *Pseudo-Mathematics and Financial Charlatanism: The Effects of Backtest Overfitting on Out-of-Sample Performance.* Notices of the AMS.
+- Bailey, D. H., & López de Prado, M. (2014). *The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting, and Non-Normality.* Journal of Portfolio Management. SSRN 2460551.
+- Fama, E. F. (1970). *Efficient Capital Markets: A Review of Theory and Empirical Work.* Journal of Finance, 25(2).
+- Jegadeesh, N., & Titman, S. (1993). *Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency.* Journal of Finance, 48(1).
+- Khuntia, S., & Pattanayak, J. K. (2018). *Adaptive Market Hypothesis and Evolving Predictability of Bitcoin.* Economics Letters, 167.
+- Liu, Y., & Tsyvinski, A. (2021). *Risks and Returns of Cryptocurrency.* Review of Financial Studies, 34(6).
+- Lo, A. W. (2004). *The Adaptive Markets Hypothesis.* Journal of Portfolio Management, 30(5).
+- Moskowitz, T. J., Ooi, Y. H., & Pedersen, L. H. (2012). *Time Series Momentum.* Journal of Financial Economics, 104(2).
+- Politis, D. N., & Romano, J. P. (1994). *The Stationary Bootstrap.* Journal of the American Statistical Association, 89(428).
+- Tran, V. L., & Leirvik, T. (2020). *Efficiency in the Markets of Crypto-currencies.* Finance Research Letters, 35.
+
+*(Citations are provided for scholarly context. This is a working paper; quantitative claims rest on the reproducible code and data, not on the cited works.)*
 
 ---
 

@@ -10,6 +10,7 @@ python -m src.robustness.daily_timeframe
 python -m src.robustness.altcoin_universe
 python -m src.robustness.long_short_experiment BTC_USDT
 python -m src.robustness.long_short_experiment ETH_USDT
+python -m src.robustness.significance
 ```
 
 | # | Critique | Test | Verdict |
@@ -19,6 +20,7 @@ python -m src.robustness.long_short_experiment ETH_USDT
 | 3 | Cost model is pessimistic | `cost_sensitivity` | **Refuted.** No negative-Sharpe strategy flips even at 0% cost. |
 | 4 | Wrong (large-cap) universe | `altcoin_universe` | **Refuted.** 0/7 surviving mid-caps clear the gate (upper bound). |
 | 5 | Benchmark depends on start date | `start_date_sensitivity` | **Partly true, cuts against critic.** Active beats B&H only on drawdown, never on the gate; underperforms on Sharpe from 2021/2022 starts. |
+| 6 | Is the active edge statistically significant? | `significance` (moving-block bootstrap) | **No.** Sharpe gap +0.282, 95% CI [-0.298, +0.778] includes 0 (p=0.19). Not distinguishable from noise. |
 
 CSV outputs: `cost_sensitivity.csv`, `start_date_sensitivity.csv`,
 `daily_timeframe.csv`, `altcoin_universe.csv`, `long_short_{BTC,ETH}_USDT.csv`.
